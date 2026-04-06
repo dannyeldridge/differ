@@ -1,0 +1,6 @@
+.superpowers/
+.claude/
+docs/
+
+# Built binary
+differ
