@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(go mod:*)",
+      "Bash(go get:*)",
+      "Bash(timeout 2 ./differ)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(git commit:*)",
+      "Read(//private/tmp/**)",
+      "Bash(/Users/daniel.eldridge/src/differ/differ)",
+      "Bash(git add:*)"
+    ]
+  }
+}
