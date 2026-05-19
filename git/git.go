@@ -14,6 +14,7 @@ type Commit struct {
 	Subject   string
 	Author    string
 	Date      string
+	Body      string
 }
 
 // FileChange represents a file affected by a commit.
@@ -62,7 +63,7 @@ func HeadHash(repoPath string) (string, error) {
 // LoadCommits returns the last 100 commits on the current branch.
 func LoadCommits(repoPath string) ([]Commit, error) {
 	out, err := run(repoPath, "log",
-		"--format=%H\x1f%h\x1f%s\x1f%an\x1f%ad",
+		"--format=%H\x1f%h\x1f%s\x1f%an\x1f%ad\x1f%b\x1e",
 		"--date=short",
 		"-100",
 	)
@@ -78,12 +79,20 @@ func parseCommits(output string) []Commit {
 	if output == "" {
 		return nil
 	}
-	lines := strings.Split(output, "\n")
-	commits := make([]Commit, 0, len(lines))
-	for _, line := range lines {
-		parts := strings.SplitN(line, "\x1f", 5)
-		if len(parts) != 5 {
+	records := strings.Split(output, "\x1e")
+	commits := make([]Commit, 0, len(records))
+	for _, record := range records {
+		record = strings.TrimSpace(record)
+		if record == "" {
 			continue
+		}
+		parts := strings.SplitN(record, "\x1f", 6)
+		if len(parts) < 5 {
+			continue
+		}
+		body := ""
+		if len(parts) == 6 {
+			body = strings.TrimSpace(parts[5])
 		}
 		commits = append(commits, Commit{
 			Hash:      parts[0],
@@ -91,6 +100,7 @@ func parseCommits(output string) []Commit {
 			Subject:   parts[2],
 			Author:    parts[3],
 			Date:      parts[4],
+			Body:      body,
 		})
 	}
 	return commits

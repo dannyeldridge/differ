@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -14,6 +15,20 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
+
+const version = "0.1.1"
+
+var _debugLog *os.File
+
+func init() {
+	_debugLog, _ = os.OpenFile("/tmp/differ-debug.log", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+}
+
+func debugLog(format string, args ...any) {
+	if _debugLog != nil {
+		fmt.Fprintf(_debugLog, format+"\n", args...)
+	}
+}
 
 // ── Pane constants ───────────────────────────────────────────────────────────
 
@@ -182,9 +197,10 @@ type Model struct {
 	branch   string
 	focused  int
 
-	commitList list.Model
-	fileList   list.Model
-	diffView   viewport.Model
+	commitList   list.Model
+	commitDetail viewport.Model
+	fileList     list.Model
+	diffView     viewport.Model
 
 	commits []git.Commit
 	files   []git.FileChange
@@ -261,11 +277,12 @@ func newModel(repoPath string) Model {
 	changesList.KeyMap.GoToEnd.SetKeys("end")
 
 	return Model{
-		repoPath:    repoPath,
-		focused:     paneCommits,
-		commitList:  commitList,
-		fileList:    fileList,
-		changesList: changesList,
+		repoPath:     repoPath,
+		focused:      paneCommits,
+		commitList:   commitList,
+		commitDetail: viewport.New(0, 0),
+		fileList:     fileList,
+		changesList:  changesList,
 	}
 }
 
@@ -392,8 +409,19 @@ func (m *Model) setPaneSizes() {
 		paneH = 1
 	}
 
-	m.commitList.SetSize(commitW, paneH)
+	// In history mode split the left pane: top half = list, bottom = detail
+	commitListH := paneH
+	commitDetailH := 0
+	if m.mode == modeHistory && paneH > 6 {
+		commitListH = paneH / 2
+		commitDetailH = paneH - commitListH
+	}
+
+	m.commitList.SetSize(commitW, commitListH)
+	m.commitDetail.Width = commitW
+	m.commitDetail.Height = commitDetailH
 	m.changesList.SetSize(commitW, paneH)
+	m.changesList.SetDelegate(fileItemDelegate{width: commitW, styles: newFileItemDelegate().styles})
 
 	if m.mode == modeChanges {
 		diffW := m.width - m.width/4 - borderW*2
@@ -449,6 +477,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			idx = 0
 		}
 		m.commitList.Select(idx)
+		m.updateCommitDetail()
 		if len(msg.commits) > 0 && m.mode == modeHistory {
 			return m, loadFilesCmd(m.repoPath, msg.commits[idx].Hash)
 		}
@@ -542,6 +571,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.diffErr = ""
 		m.diffView.SetContent(ColorizeDiff(msg.content))
 		m.diffView.GotoTop()
+		m.xOffset = 0
 		return m, nil
 
 	case errMsg:
@@ -550,6 +580,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
+		debugLog("key=%q mode=%d focused=%d", msg.String(), m.mode, m.focused)
 		if key.Matches(msg, keys.Quit) {
 			return m, tea.Quit
 		}
@@ -567,8 +598,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.setPaneSizes()
 			return m, nil
 		}
-		if key.Matches(msg, keys.FocusNext) {
-			if m.focused < paneDiff {
+		if key.Matches(msg, keys.FocusNext) && m.focused != paneDiff {
+			if m.mode == modeChanges {
+				if m.focused == paneCommits {
+					m.focused = paneDiff
+				}
+			} else if m.focused < paneDiff {
 				m.focused++
 				if m.focused == paneFiles {
 					m.fileList.Select(0)
@@ -579,8 +614,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		if key.Matches(msg, keys.FocusPrev) {
-			if m.focused > paneCommits {
+		if key.Matches(msg, keys.FocusPrev) && m.focused != paneDiff {
+			if m.mode == modeChanges {
+				if m.focused == paneDiff {
+					m.focused = paneCommits
+				}
+			} else if m.focused > paneCommits {
 				m.focused--
 			}
 			return m, nil
@@ -617,16 +656,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// History mode — existing behavior unchanged
 			if key.Matches(msg, keys.GotoTop) {
 				m.commitList.Select(0)
+				m.updateCommitDetail()
 				return m, loadFilesCmd(m.repoPath, m.selectedCommitHash())
 			}
 			if key.Matches(msg, keys.GotoBottom) {
 				m.commitList.Select(len(m.commits) - 1)
+				m.updateCommitDetail()
 				return m, loadFilesCmd(m.repoPath, m.selectedCommitHash())
 			}
 			prevIdx := m.commitList.Index()
 			m.commitList, cmd = m.commitList.Update(msg)
 			if m.commitList.Index() != prevIdx {
 				hash := m.selectedCommitHash()
+				m.updateCommitDetail()
 				return m, tea.Batch(cmd, loadFilesCmd(m.repoPath, hash))
 			}
 		case paneFiles:
@@ -658,10 +700,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.diffView.LineUp(3)
 			case key.Matches(msg, keys.Down):
 				m.diffView.LineDown(3)
+			case key.Matches(msg, keys.ScrollLeft):
+				if m.xOffset == 0 {
+					if m.mode == modeChanges {
+						m.focused = paneCommits
+					} else {
+						m.focused = paneFiles
+					}
+				} else {
+					m.diffView.ScrollLeft(4)
+					m.xOffset -= 4
+					if m.xOffset < 0 {
+						m.xOffset = 0
+					}
+				}
+			case key.Matches(msg, keys.ScrollRight):
+				m.diffView.ScrollRight(4)
+				m.xOffset += 4
 			case key.Matches(msg, keys.GotoTop):
 				m.diffView.GotoTop()
 			case key.Matches(msg, keys.GotoBottom):
 				m.diffView.GotoBottom()
+			case key.Matches(msg, keys.FocusPrev):
+				if m.mode == modeChanges {
+					m.focused = paneCommits
+				} else {
+					m.focused = paneFiles
+				}
 			default:
 				m.diffView, cmd = m.diffView.Update(msg)
 			}
@@ -713,6 +778,16 @@ func (m Model) renderCommits() string {
 		return borderStyle(m.focused == paneCommits).Render(m.changesList.View())
 	}
 	m.commitList.Title = tabBar
+	if m.commitDetail.Height > 0 {
+		w := m.commitDetail.Width
+		divider := lipgloss.NewStyle().Foreground(lipgloss.Color("237")).Render(strings.Repeat("─", w))
+		inner := lipgloss.JoinVertical(lipgloss.Left,
+			m.commitList.View(),
+			divider,
+			m.commitDetail.View(),
+		)
+		return borderStyle(m.focused == paneCommits).Render(inner)
+	}
 	return borderStyle(m.focused == paneCommits).Render(m.commitList.View())
 }
 
@@ -769,10 +844,28 @@ func (m Model) renderStatusBar() string {
 		status = errorStyle.Render(m.fileErr)
 	}
 
-	statsLine := statusBarStyle.Width(m.width).Render(status)
-	pathContent := m.selectedFile()
+	ver := "v" + version
+	right := statusBarStyle.Render(ver)
+	rightW := lipgloss.Width(right)
+	leftW := m.width - rightW
+	if leftW < 0 {
+		leftW = 0
+	}
+	left := statusBarStyle.Width(leftW).Render(status)
+	statsLine := lipgloss.JoinHorizontal(lipgloss.Top, left, right)
+	var pathContent string
 	if m.statusMsg != "" {
 		pathContent = m.statusMsg
+	} else if m.mode == modeChanges {
+		if item, ok := m.changesList.SelectedItem().(changesFileItem); ok {
+			pathContent = item.file.Path
+		}
+	} else if m.focused == paneCommits {
+		if item, ok := m.commitList.SelectedItem().(commitItem); ok {
+			pathContent = item.commit.Subject
+		}
+	} else {
+		pathContent = m.selectedFile()
 	}
 	pathLine := filePathBarStyle.Width(m.width).Render(pathContent)
 	return lipgloss.JoinVertical(lipgloss.Left, pathLine, statsLine)
@@ -792,4 +885,45 @@ func firstChangesFile(items []list.Item) int {
 		}
 	}
 	return -1
+}
+
+func (m *Model) updateCommitDetail() {
+	item, ok := m.commitList.SelectedItem().(commitItem)
+	if !ok {
+		m.commitDetail.SetContent("")
+		return
+	}
+	c := item.commit
+	w := m.commitDetail.Width
+	if w < 1 {
+		w = 20
+	}
+
+	subjectStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("252")).
+		Bold(true).
+		Width(w).
+		MaxWidth(w)
+	metaStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("241")).
+		Width(w).
+		MaxWidth(w)
+	bodyStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("246")).
+		Width(w).
+		MaxWidth(w)
+	dividerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("237"))
+
+	divider := dividerStyle.Render(strings.Repeat("─", w))
+
+	lines := []string{
+		subjectStyle.Render(c.Subject),
+		metaStyle.Render(c.ShortHash + "  " + c.Author + "  " + c.Date),
+	}
+	if c.Body != "" {
+		lines = append(lines, divider, bodyStyle.Render(c.Body))
+	}
+	m.commitDetail.SetContent(strings.Join(lines, "\n"))
+	m.commitDetail.GotoTop()
 }

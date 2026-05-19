@@ -3,14 +3,16 @@ package main
 import "github.com/charmbracelet/bubbles/key"
 
 type keyMap struct {
-	Up         key.Binding
-	Down       key.Binding
-	FocusNext  key.Binding
-	FocusPrev  key.Binding
-	GotoTop    key.Binding
-	GotoBottom key.Binding
-	Quit       key.Binding
-	ToggleMode key.Binding
+	Up          key.Binding
+	Down        key.Binding
+	FocusNext   key.Binding
+	FocusPrev   key.Binding
+	GotoTop     key.Binding
+	GotoBottom  key.Binding
+	Quit        key.Binding
+	ToggleMode  key.Binding
+	ScrollLeft  key.Binding
+	ScrollRight key.Binding
 }
 
 var keys = keyMap{
@@ -45,5 +47,13 @@ var keys = keyMap{
 	ToggleMode: key.NewBinding(
 		key.WithKeys("c"),
 		key.WithHelp("c", "toggle changes/history"),
+	),
+	ScrollLeft: key.NewBinding(
+		key.WithKeys("h", "left"),
+		key.WithHelp("h/←", "scroll left"),
+	),
+	ScrollRight: key.NewBinding(
+		key.WithKeys("l", "right"),
+		key.WithHelp("l/→", "scroll right"),
 	),
 }

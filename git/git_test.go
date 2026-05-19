@@ -3,7 +3,9 @@ package git
 import "testing"
 
 func TestParseCommits(t *testing.T) {
-	input := "abc1234\x1fabc\x1ffix login bug\x1fJane Doe\x1f2024-01-15\ndef5678\x1fdef\x1fadd auth middleware\x1fJohn Smith\x1f2024-01-14"
+	// New format: fields separated by \x1f, records by \x1e; last field is body (may be empty).
+	input := "abc1234\x1fabc\x1ffix login bug\x1fJane Doe\x1f2024-01-15\x1fSome body text\x1e" +
+		"def5678\x1fdef\x1fadd auth middleware\x1fJohn Smith\x1f2024-01-14\x1f\x1e"
 	got := parseCommits(input)
 	if len(got) != 2 {
 		t.Fatalf("expected 2 commits, got %d", len(got))
@@ -23,8 +25,14 @@ func TestParseCommits(t *testing.T) {
 	if got[0].Date != "2024-01-15" {
 		t.Errorf("expected date '2024-01-15', got %q", got[0].Date)
 	}
+	if got[0].Body != "Some body text" {
+		t.Errorf("expected body 'Some body text', got %q", got[0].Body)
+	}
 	if got[1].Hash != "def5678" {
 		t.Errorf("expected second hash def5678, got %q", got[1].Hash)
+	}
+	if got[1].Body != "" {
+		t.Errorf("expected empty body for second commit, got %q", got[1].Body)
 	}
 }
 
