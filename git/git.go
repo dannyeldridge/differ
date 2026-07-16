@@ -145,13 +145,28 @@ func LoadStagedFiles(repoPath string) ([]FileChange, error) {
 	return parseFiles(out), nil
 }
 
-// LoadUnstagedFiles returns files with unstaged changes (git diff).
+// LoadUnstagedFiles returns files with unstaged changes: tracked modifications
+// and deletions (git diff), plus untracked files (git ls-files --others), which
+// git diff does not report. Untracked files are reported with status "A".
 func LoadUnstagedFiles(repoPath string) ([]FileChange, error) {
 	out, err := run(repoPath, "diff", "--name-status")
 	if err != nil {
 		return nil, err
 	}
-	return parseFiles(out), nil
+	files := parseFiles(out)
+
+	untracked, err := run(repoPath, "ls-files", "--others", "--exclude-standard")
+	if err != nil {
+		return nil, err
+	}
+	for _, path := range strings.Split(untracked, "\n") {
+		path = strings.TrimSpace(path)
+		if path == "" {
+			continue
+		}
+		files = append(files, FileChange{Status: "A", Path: path})
+	}
+	return files, nil
 }
 
 // parseFiles parses the output of `git diff --name-status` or `git show --name-status`.
@@ -189,10 +204,40 @@ func LoadDiff(repoPath, hash, file string) (string, error) {
 
 // LoadWorkingDiff returns the raw diff for a working-tree file.
 // If staged is true, returns the staged diff (git diff --cached).
-// If staged is false, returns the unstaged diff (git diff).
+// If staged is false, returns the unstaged diff (git diff). Untracked files are
+// not reported by plain git diff, so they are diffed against /dev/null.
 func LoadWorkingDiff(repoPath, file string, staged bool) (string, error) {
 	if staged {
 		return run(repoPath, "diff", "--cached", "--", file)
 	}
+	if isUntracked(repoPath, file) {
+		return runAllowExit1(repoPath, "diff", "--no-index", "--", "/dev/null", file)
+	}
 	return run(repoPath, "diff", "--", file)
+}
+
+// isUntracked reports whether file is present in the working tree but not tracked by git.
+func isUntracked(repoPath, file string) bool {
+	out, err := run(repoPath, "ls-files", "--others", "--exclude-standard", "--", file)
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(out) != ""
+}
+
+// runAllowExit1 runs git like run, but treats exit code 1 as success. Some git
+// commands (notably `diff --no-index`) exit 1 to signal "differences found"
+// rather than an error.
+func runAllowExit1(repoPath string, args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = repoPath
+	out, err := cmd.Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
+			return strings.TrimSpace(string(out)), nil
+		}
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
 }

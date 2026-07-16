@@ -1,6 +1,91 @@
 package git
 
-import "testing"
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// initRepo creates a throwaway git repo with one committed file and returns its path.
+func initRepo(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	mustGit(t, dir, "init")
+	mustGit(t, dir, "config", "user.email", "t@t.co")
+	mustGit(t, dir, "config", "user.name", "t")
+	if err := os.WriteFile(filepath.Join(dir, "tracked.txt"), []byte("a\nb\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	mustGit(t, dir, "add", "-A")
+	mustGit(t, dir, "commit", "-m", "init")
+	return dir
+}
+
+func mustGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+	}
+}
+
+func findFile(files []FileChange, path string) (FileChange, bool) {
+	for _, f := range files {
+		if f.Path == path {
+			return f, true
+		}
+	}
+	return FileChange{}, false
+}
+
+func TestLoadUnstagedFilesIncludesUntracked(t *testing.T) {
+	dir := initRepo(t)
+	if err := os.WriteFile(filepath.Join(dir, "brandnew.txt"), []byte("new\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	files, err := LoadUnstagedFiles(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := findFile(files, "brandnew.txt"); !ok {
+		t.Fatalf("expected untracked file brandnew.txt in unstaged files, got %+v", files)
+	}
+}
+
+func TestLoadUnstagedFilesIncludesDeleted(t *testing.T) {
+	dir := initRepo(t)
+	if err := os.Remove(filepath.Join(dir, "tracked.txt")); err != nil {
+		t.Fatal(err)
+	}
+	files, err := LoadUnstagedFiles(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, ok := findFile(files, "tracked.txt")
+	if !ok {
+		t.Fatalf("expected deleted file tracked.txt in unstaged files, got %+v", files)
+	}
+	if f.Status != "D" {
+		t.Errorf("expected status D for deleted file, got %q", f.Status)
+	}
+}
+
+func TestLoadWorkingDiffUntracked(t *testing.T) {
+	dir := initRepo(t)
+	if err := os.WriteFile(filepath.Join(dir, "brandnew.txt"), []byte("new\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	diff, err := LoadWorkingDiff(dir, "brandnew.txt", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(diff, "+new") {
+		t.Fatalf("expected diff for untracked file to include added line, got %q", diff)
+	}
+}
 
 func TestParseCommits(t *testing.T) {
 	// New format: fields separated by \x1f, records by \x1e; last field is body (may be empty).
