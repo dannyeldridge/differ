@@ -1,3 +1,5 @@
+<img width="1367" height="915" alt="image" src="https://github.com/user-attachments/assets/cb7952b7-7e90-45fb-b770-bb7282574bd1" />
+
 # differ
 
 A terminal UI for browsing git history and working-tree changes. Navigate commits, files, and diffs from the keyboard.
