@@ -2,15 +2,17 @@
 
 # differ
 
-A terminal UI for browsing git history and working-tree changes. Navigate commits, files, and diffs from the keyboard.
+A native macOS and terminal UI for browsing git history and working-tree changes. Navigate commits, files, and diffs from the keyboard.
 
 ## Install
 
 Requires Go 1.21+.
 
 ```sh
-go install github.com/dannyeldridge/differ@latest
+go install -tags production github.com/dannyeldridge/differ@latest
 ```
+
+The `-tags production` flag is required for the GUI to build correctly.
 
 The binary is placed in `$GOPATH/bin` (usually `~/go/bin`). Make sure that's on your `$PATH`.
 
@@ -23,7 +25,15 @@ cd your-repo
 differ
 ```
 
+This opens a native macOS window. To use the terminal UI instead:
+
+```sh
+differ --tui
+```
+
 ## Key bindings
+
+Both the GUI and the terminal UI use the same keys:
 
 | Key | Action |
 |-----|--------|
@@ -34,7 +44,8 @@ differ
 | `k` / `↑` | Move up |
 | `g` | Go to top |
 | `G` | Go to bottom |
-| `q` / `ctrl+c` | Quit |
+| `q` / `ctrl+c` | Quit (terminal UI) |
+| `q` / `Cmd+Q` / `Cmd+W` | Quit (GUI) |
 
 ## Requirements
 
