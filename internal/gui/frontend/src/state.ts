@@ -111,6 +111,21 @@ export async function init(): Promise<void> {
   render()
 }
 
+export async function refreshForRepoChange(): Promise<void> {
+  state.branch = await api.currentBranch()
+  state.commits = await api.loadCommits()
+  if (state.commitIndex >= state.commits.length) state.commitIndex = 0
+
+  if (state.mode === 'history') {
+    await loadFilesForSelectedCommit()
+    await loadDiffForSelectedFile()
+  } else {
+    await loadChanges() // loadChanges() already calls render()
+    return
+  }
+  render()
+}
+
 export async function loadChanges(): Promise<void> {
   const [staged, unstaged] = await Promise.all([api.loadStagedFiles(), api.loadUnstagedFiles()])
   state.stagedCount = staged.length

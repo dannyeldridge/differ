@@ -21,6 +21,7 @@ func Run(repoPath string) error {
 		Bind: []interface{}{app},
 		OnStartup: func(ctx context.Context) {
 			app.ctx = ctx
+			app.startWatcher()
 		},
 	})
 }

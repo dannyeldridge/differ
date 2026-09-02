@@ -1,5 +1,5 @@
 import './style.css'
-import { init, handleKey, setRenderer } from './state'
+import { init, handleKey, setRenderer, refreshForRepoChange } from './state'
 import { render } from './render'
 
 setRenderer(render)
@@ -20,6 +20,10 @@ window.addEventListener('keydown', (e) => {
     e.preventDefault()
     void handleKey(key)
   }
+})
+
+window.runtime.EventsOn('repo-changed', () => {
+  void refreshForRepoChange()
 })
 
 void init()
