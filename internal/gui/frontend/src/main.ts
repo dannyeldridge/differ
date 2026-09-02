@@ -1,31 +1,25 @@
-interface Commit {
-  Hash: string
-  ShortHash: string
-  Subject: string
-  Author: string
-  Date: string
-  Body: string
-}
+import './style.css'
+import { init, handleKey, setRenderer } from './state'
+import { render } from './render'
 
-interface GoAPI {
-  CurrentBranch(): Promise<string>
-  LoadCommits(): Promise<Commit[]>
-}
+setRenderer(render)
 
-declare global {
-  interface Window {
-    go: { gui: { App: GoAPI } }
+const HANDLED_KEYS = new Set([
+  'j', 'k', 'h', 'l', 'g', 'G', 'c', 'q',
+  'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Shift+Tab',
+])
+
+window.addEventListener('keydown', (e) => {
+  if (e.metaKey && (e.key === 'q' || e.key === 'w')) {
+    e.preventDefault()
+    window.runtime.Quit()
+    return
   }
-}
+  const key = e.shiftKey && e.key === 'Tab' ? 'Shift+Tab' : e.key
+  if (HANDLED_KEYS.has(key)) {
+    e.preventDefault()
+    void handleKey(key)
+  }
+})
 
-async function main() {
-  const app = document.getElementById('app')!
-  const branch = await window.go.gui.App.CurrentBranch()
-  const commits = await window.go.gui.App.LoadCommits()
-  app.innerHTML = `
-    <p>branch: ${branch}</p>
-    <ul>${commits.map((c) => `<li>${c.ShortHash} ${c.Subject}</li>`).join('')}</ul>
-  `
-}
-
-main()
+void init()
