@@ -47,10 +47,21 @@ Both the GUI and the terminal UI use the same keys:
 | `q` / `ctrl+c` | Quit (terminal UI) |
 | `q` / `Cmd+Q` / `Cmd+W` | Quit (GUI) |
 
+## Development
+
+If you edit any GUI source under `internal/gui/frontend/src`, rebuild the embedded frontend bundle before building the Go binary:
+
+```sh
+cd internal/gui/frontend && npm install && npm run build
+```
+
+This regenerates `internal/gui/frontend/dist/`, which is committed to git and embedded via `go:embed` — commit the updated `dist/` alongside your Go changes. Note that `go build`/`go run` also need `-tags production` for a working GUI locally (not just `go install` — see the Install section above).
+
 ## Requirements
 
 - Go 1.21+
 - `git` must be on your `$PATH`
+- Xcode Command Line Tools (required for the GUI's cgo/WebKit bindings)
 
 ## License
 

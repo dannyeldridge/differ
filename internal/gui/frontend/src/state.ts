@@ -28,6 +28,8 @@ export interface State {
   unstagedCount: number
 
   diffLines: DiffLine[]
+
+  errorMessage: string
 }
 
 export function createInitialState(): State {
@@ -44,6 +46,7 @@ export function createInitialState(): State {
     stagedCount: 0,
     unstagedCount: 0,
     diffLines: [],
+    errorMessage: '',
   }
 }
 
@@ -82,23 +85,32 @@ function nextChangesFileIndex(from: number, direction: 1 | -1): number {
 }
 
 async function loadDiffForSelectedFile(): Promise<void> {
-  if (state.mode === 'history') {
+  const modeAtStart = state.mode
+  if (modeAtStart === 'history') {
     const file = state.files[state.fileIndex]
     const commit = state.commits[state.commitIndex]
-    state.diffLines = file && commit ? await api.loadDiffLines(commit.Hash, file.Path) : []
+    const lines = file && commit ? await api.loadDiffLines(commit.Hash, file.Path) : []
+    if (state.mode !== modeAtStart) return
+    state.diffLines = lines
   } else {
     const entry = state.changesEntries[state.changesIndex]
-    state.diffLines =
+    const lines =
       entry && entry.kind === 'file' && entry.file
         ? await api.loadWorkingDiffLines(entry.file.Path, entry.staged)
         : []
+    if (state.mode !== modeAtStart) return
+    state.diffLines = lines
   }
+  if (state.mode !== modeAtStart) return
   diffContainer?.scrollTo({ top: 0, left: 0 })
 }
 
 async function loadFilesForSelectedCommit(): Promise<void> {
+  const modeAtStart = state.mode
   const commit = state.commits[state.commitIndex]
-  state.files = commit ? await api.loadFiles(commit.Hash) : []
+  const files = commit ? await api.loadFiles(commit.Hash) : []
+  if (state.mode !== modeAtStart) return
+  state.files = files
   state.fileIndex = 0
 }
 
@@ -188,12 +200,12 @@ export async function handleKey(key: string): Promise<void> {
     return
   }
   if ((key === 'h' || key === 'ArrowLeft' || key === 'Shift+Tab') && state.focused !== 'diff') {
+    // state.focused is already narrowed to exclude 'diff' here (guarded above); its own
+    // left-navigation is handled in the `state.focused === 'diff'` branch further below.
     if (state.mode === 'changes') {
-      if (state.focused === 'diff') state.focused = 'commits'
+      // 'commits' is the leftmost pane in changes mode; nothing further left to focus.
     } else if (state.focused === 'files') {
       state.focused = 'commits'
-    } else if (state.focused === 'diff') {
-      state.focused = 'files'
     }
     render()
     return

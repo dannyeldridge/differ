@@ -27,7 +27,14 @@ func (a *App) LoadCommits() ([]git.Commit, error) {
 }
 
 func (a *App) LoadFiles(hash string) ([]git.FileChange, error) {
-	return git.LoadFiles(a.repoPath, hash)
+	files, err := git.LoadFiles(a.repoPath, hash)
+	if err != nil {
+		return nil, err
+	}
+	if files == nil {
+		files = []git.FileChange{}
+	}
+	return files, nil
 }
 
 func (a *App) LoadDiffLines(hash, file string) ([]diffparse.Line, error) {
@@ -35,15 +42,33 @@ func (a *App) LoadDiffLines(hash, file string) ([]diffparse.Line, error) {
 	if err != nil {
 		return nil, err
 	}
-	return diffparse.Parse(raw), nil
+	lines := diffparse.Parse(raw)
+	if lines == nil {
+		lines = []diffparse.Line{}
+	}
+	return lines, nil
 }
 
 func (a *App) LoadStagedFiles() ([]git.FileChange, error) {
-	return git.LoadStagedFiles(a.repoPath)
+	files, err := git.LoadStagedFiles(a.repoPath)
+	if err != nil {
+		return nil, err
+	}
+	if files == nil {
+		files = []git.FileChange{}
+	}
+	return files, nil
 }
 
 func (a *App) LoadUnstagedFiles() ([]git.FileChange, error) {
-	return git.LoadUnstagedFiles(a.repoPath)
+	files, err := git.LoadUnstagedFiles(a.repoPath)
+	if err != nil {
+		return nil, err
+	}
+	if files == nil {
+		files = []git.FileChange{}
+	}
+	return files, nil
 }
 
 func (a *App) LoadWorkingDiffLines(file string, staged bool) ([]diffparse.Line, error) {
@@ -51,7 +76,11 @@ func (a *App) LoadWorkingDiffLines(file string, staged bool) ([]diffparse.Line, 
 	if err != nil {
 		return nil, err
 	}
-	return diffparse.Parse(raw), nil
+	lines := diffparse.Parse(raw)
+	if lines == nil {
+		lines = []diffparse.Line{}
+	}
+	return lines, nil
 }
 
 // startWatcher polls for HEAD/reflog/index changes every second and emits

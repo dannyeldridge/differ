@@ -26,9 +26,10 @@ function app(): GoAPI {
 
 export const currentBranch = () => app().CurrentBranch()
 export const loadCommits = () => app().LoadCommits()
-export const loadFiles = (hash: string) => app().LoadFiles(hash)
-export const loadDiffLines = (hash: string, file: string) => app().LoadDiffLines(hash, file)
-export const loadStagedFiles = () => app().LoadStagedFiles()
-export const loadUnstagedFiles = () => app().LoadUnstagedFiles()
+export const loadFiles = (hash: string) => app().LoadFiles(hash).then((r) => r ?? [])
+export const loadDiffLines = (hash: string, file: string) =>
+  app().LoadDiffLines(hash, file).then((r) => r ?? [])
+export const loadStagedFiles = () => app().LoadStagedFiles().then((r) => r ?? [])
+export const loadUnstagedFiles = () => app().LoadUnstagedFiles().then((r) => r ?? [])
 export const loadWorkingDiffLines = (file: string, staged: boolean) =>
-  app().LoadWorkingDiffLines(file, staged)
+  app().LoadWorkingDiffLines(file, staged).then((r) => r ?? [])

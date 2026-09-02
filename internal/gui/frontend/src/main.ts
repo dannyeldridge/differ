@@ -1,8 +1,15 @@
 import './style.css'
-import { init, handleKey, setRenderer, refreshForRepoChange } from './state'
+import { init, handleKey, setRenderer, refreshForRepoChange, state } from './state'
 import { render } from './render'
 
 setRenderer(render)
+
+function safely(fn: () => Promise<void>): void {
+  fn().catch((err) => {
+    state.errorMessage = err instanceof Error ? err.message : String(err)
+    render()
+  })
+}
 
 const HANDLED_KEYS = new Set([
   'j', 'k', 'h', 'l', 'g', 'G', 'c', 'q',
@@ -18,12 +25,17 @@ window.addEventListener('keydown', (e) => {
   const key = e.shiftKey && e.key === 'Tab' ? 'Shift+Tab' : e.key
   if (HANDLED_KEYS.has(key)) {
     e.preventDefault()
-    void handleKey(key)
+    safely(() => handleKey(key))
   }
 })
 
 window.runtime.EventsOn('repo-changed', () => {
-  void refreshForRepoChange()
+  safely(() => refreshForRepoChange())
 })
 
-void init()
+window.addEventListener('unhandledrejection', (e) => {
+  state.errorMessage = String(e.reason)
+  render()
+})
+
+safely(() => init())

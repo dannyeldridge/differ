@@ -72,6 +72,10 @@ body {
   background: var(--border);
 }
 
+.panes.changes-mode {
+  grid-template-columns: 1fr 3fr;
+}
+
 .pane {
   background: var(--bg);
   border: 2px solid var(--border);

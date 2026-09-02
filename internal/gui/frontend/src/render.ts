@@ -94,11 +94,12 @@ function selectedPathLine(): string {
 }
 
 function statusBarText(): string {
+  const prefix = state.errorMessage ? `error: ${state.errorMessage}  ` : ''
   if (state.mode === 'changes') {
-    return `branch: ${state.branch}  staged: ${state.stagedCount}  unstaged: ${state.unstagedCount}`
+    return `${prefix}branch: ${state.branch}  staged: ${state.stagedCount}  unstaged: ${state.unstagedCount}`
   }
   const commit = state.commits[state.commitIndex]
-  let text = `branch: ${state.branch}  commit: ${commit?.ShortHash ?? ''}  author: ${commit?.Author ?? ''}  date: ${commit?.Date ?? ''}`
+  let text = `${prefix}branch: ${state.branch}  commit: ${commit?.ShortHash ?? ''}  author: ${commit?.Author ?? ''}  date: ${commit?.Date ?? ''}`
   if (state.focused !== 'commits' && state.files.length > 0) {
     text += `  [${state.fileIndex + 1}/${state.files.length} files]`
   }
@@ -108,7 +109,7 @@ function statusBarText(): string {
 export function render(): void {
   const app = document.getElementById('app')!
   app.innerHTML = `
-    <div class="panes">
+    <div class="panes ${state.mode === 'changes' ? 'changes-mode' : ''}">
       <div id="pane-commits" class="pane ${state.focused === 'commits' ? 'focused' : ''}">${renderCommitsPane()}</div>
       ${
         state.mode === 'history'
@@ -121,5 +122,5 @@ export function render(): void {
     <div class="status-bar">${escapeHtml(statusBarText())}</div>
   `
   setDiffContainer(document.getElementById('pane-diff'))
-  document.querySelector('.row.selected')?.scrollIntoView({ block: 'nearest' })
+  document.querySelector(`#pane-${state.focused} .row.selected`)?.scrollIntoView({ block: 'nearest' })
 }
