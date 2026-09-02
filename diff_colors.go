@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 
+	"github.com/dannyeldridge/differ/internal/diffparse"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -17,24 +18,21 @@ var (
 // ColorizeDiff applies terminal colors to a unified diff string.
 // Lines starting with + are green, - are red, @@ are cyan, file headers are bold yellow.
 func ColorizeDiff(diff string) string {
-	lines := strings.Split(diff, "\n")
-	var sb strings.Builder
-	for i, line := range lines {
-		switch {
-		case strings.HasPrefix(line, "+++") || strings.HasPrefix(line, "---"):
-			sb.WriteString(headerStyle.Render(line))
-		case strings.HasPrefix(line, "+"):
-			sb.WriteString(addStyle.Render(line))
-		case strings.HasPrefix(line, "-"):
-			sb.WriteString(delStyle.Render(line))
-		case strings.HasPrefix(line, "@@"):
-			sb.WriteString(hunkStyle.Render(line))
+	lines := diffparse.Parse(diff)
+	rendered := make([]string, len(lines))
+	for i, l := range lines {
+		switch l.Type {
+		case diffparse.LineHeader:
+			rendered[i] = headerStyle.Render(l.Content)
+		case diffparse.LineHunk:
+			rendered[i] = hunkStyle.Render(l.Content)
+		case diffparse.LineAdd:
+			rendered[i] = addStyle.Render("+" + l.Content)
+		case diffparse.LineDel:
+			rendered[i] = delStyle.Render("-" + l.Content)
 		default:
-			sb.WriteString(contextStyle.Render(line))
-		}
-		if i < len(lines)-1 {
-			sb.WriteString("\n")
+			rendered[i] = contextStyle.Render(l.Content)
 		}
 	}
-	return sb.String()
+	return strings.Join(rendered, "\n")
 }
