@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"github.com/dannyeldridge/differ/git"
@@ -374,9 +374,6 @@ func loadWorkingDiffCmd(repoPath, file string, staged bool) tea.Cmd {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-func gitIsRepo(path string) bool              { return git.IsGitRepo(path) }
-func gitRepoRoot(path string) (string, error) { return git.RepoRoot(path) }
 
 func (m Model) selectedCommitHash() string {
 	if item, ok := m.commitList.SelectedItem().(commitItem); ok {

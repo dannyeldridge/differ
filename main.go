@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dannyeldridge/differ/git"
+	"github.com/dannyeldridge/differ/internal/tui"
 )
 
 func main() {
@@ -14,20 +15,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	if !gitIsRepo(cwd) {
+	if !git.IsGitRepo(cwd) {
 		fmt.Fprintln(os.Stderr, "error: not inside a git repository")
 		os.Exit(1)
 	}
 
-	root, err := gitRepoRoot(cwd)
+	root, err := git.RepoRoot(cwd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: could not find repo root: %v\n", err)
 		os.Exit(1)
 	}
 
-	m := newModel(root)
-	p := tea.NewProgram(m, tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
+	if err := tui.Run(root); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
