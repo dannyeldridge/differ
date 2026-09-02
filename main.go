@@ -1,14 +1,19 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
 	"github.com/dannyeldridge/differ/git"
+	"github.com/dannyeldridge/differ/internal/gui"
 	"github.com/dannyeldridge/differ/internal/tui"
 )
 
 func main() {
+	tuiMode := flag.Bool("tui", false, "run the terminal UI instead of the GUI")
+	flag.Parse()
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error: could not get working directory")
@@ -26,7 +31,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := tui.Run(root); err != nil {
+	if *tuiMode {
+		err = tui.Run(root)
+	} else {
+		err = gui.Run(root)
+	}
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
