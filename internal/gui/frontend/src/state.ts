@@ -164,6 +164,7 @@ export async function handleKey(key: string): Promise<void> {
       if (state.focused === 'commits') state.focused = 'diff'
     } else if (state.focused === 'commits') {
       state.focused = 'files'
+      state.fileIndex = 0
       if (state.files.length > 0) await loadDiffForSelectedFile()
     } else if (state.focused === 'files') {
       state.focused = 'diff'
