@@ -89,6 +89,17 @@ body {
   border-color: var(--border-focus);
 }
 
+#pane-commits,
+#pane-files {
+  overflow-y: hidden;
+}
+
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
 .diff-pane {
   overflow-x: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -109,13 +120,25 @@ body {
   font-weight: normal;
 }
 
+.tab {
+  cursor: pointer;
+}
+
 .row {
   padding: 2px 8px;
   white-space: nowrap;
 }
 
+.row[data-index] {
+  cursor: pointer;
+}
+
 .row.selected {
   background: var(--selected-bg);
+}
+
+.row[data-index]:hover:not(.selected) {
+  background: var(--statusbar-bg);
 }
 
 .header-row {
@@ -131,6 +154,9 @@ body {
 }
 
 .commit-detail {
+  flex: none;
+  max-height: 40%;
+  overflow-y: auto;
   border-top: 1px solid var(--border);
   padding: 8px;
 }
@@ -221,7 +247,46 @@ body {
   color: var(--dim);
   font-size: 12px;
   border-top: 1px solid var(--border);
+}
+
+.status-bar {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.path-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.path-bar .path-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copy-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 2px;
+  margin: 0;
+  cursor: pointer;
+  color: var(--dim);
+  border-radius: 3px;
+}
+
+.copy-btn:hover {
+  color: var(--fg);
+  background: var(--border);
+}
+
+.copy-btn.copied {
+  color: var(--add-fg);
 }

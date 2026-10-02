@@ -164,6 +164,60 @@ export async function loadChanges(): Promise<void> {
   render()
 }
 
+export async function switchMode(): Promise<void> {
+  if (state.mode === 'history') {
+    state.mode = 'changes'
+    state.focused = 'commits'
+    state.diffLines = []
+    state.changesEntries = []
+    render()
+    await loadChanges()
+  } else {
+    state.mode = 'history'
+    state.focused = 'commits'
+    render()
+  }
+}
+
+export function focusPane(pane: Pane): void {
+  if (pane === 'files' && state.mode === 'changes') return
+  if (state.focused === pane) return
+  state.focused = pane
+  render()
+}
+
+export async function selectCommit(index: number): Promise<void> {
+  if (state.mode !== 'history' || index < 0 || index >= state.commits.length) return
+  state.focused = 'commits'
+  const prev = state.commitIndex
+  state.commitIndex = index
+  if (index !== prev) {
+    await loadFilesForSelectedCommit()
+    await loadDiffForSelectedFile()
+  }
+  render()
+}
+
+export async function selectFile(index: number): Promise<void> {
+  if (state.mode !== 'history' || index < 0 || index >= state.files.length) return
+  state.focused = 'files'
+  const prev = state.fileIndex
+  state.fileIndex = index
+  if (index !== prev) await loadDiffForSelectedFile()
+  render()
+}
+
+export async function selectChangesEntry(index: number): Promise<void> {
+  if (state.mode !== 'changes') return
+  const entry = state.changesEntries[index]
+  if (!entry || entry.kind !== 'file') return
+  state.focused = 'commits'
+  const prev = state.changesIndex
+  state.changesIndex = index
+  if (index !== prev) await loadDiffForSelectedFile()
+  render()
+}
+
 export async function handleKey(key: string): Promise<void> {
   if (key === 'q') {
     window.runtime.Quit()
@@ -171,18 +225,7 @@ export async function handleKey(key: string): Promise<void> {
   }
 
   if (key === 'c') {
-    if (state.mode === 'history') {
-      state.mode = 'changes'
-      state.focused = 'commits'
-      state.diffLines = []
-      state.changesEntries = []
-      render()
-      await loadChanges()
-    } else {
-      state.mode = 'history'
-      state.focused = 'commits'
-      render()
-    }
+    await switchMode()
     return
   }
 

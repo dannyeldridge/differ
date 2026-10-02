@@ -22,9 +22,9 @@ function statusClass(status: string): string {
 }
 
 function renderCommitsPane(): string {
-  const tabs = `${state.mode === 'changes' ? '[Changes]' : 'Changes'}   ${
+  const tabs = `<span class="tab" data-tab="changes">${state.mode === 'changes' ? '[Changes]' : 'Changes'}</span>   <span class="tab" data-tab="history">${
     state.mode === 'history' ? '[History]' : 'History'
-  } <span class="hint">c</span>`
+  }</span> <span class="hint">c</span>`
 
   if (state.mode === 'changes') {
     const rows = state.changesEntries
@@ -32,16 +32,16 @@ function renderCommitsPane(): string {
         if (e.kind === 'header') return `<div class="row header-row">${escapeHtml(e.label)}</div>`
         const f = e.file!
         const selected = i === state.changesIndex ? 'selected' : ''
-        return `<div class="row ${selected}"><span class="status ${statusClass(f.Status)}">${f.Status}</span> ${escapeHtml(f.Path)}</div>`
+        return `<div class="row ${selected}" data-index="${i}"><span class="status ${statusClass(f.Status)}">${f.Status}</span> ${escapeHtml(f.Path)}</div>`
       })
       .join('')
-    return `<div class="pane-title">${tabs}</div><div class="list">${rows}</div>`
+    return `<div class="pane-title">${tabs}</div><div class="scroll-area"><div class="list">${rows}</div></div>`
   }
 
   const rows = state.commits
     .map((c, i) => {
       const selected = i === state.commitIndex ? 'selected' : ''
-      return `<div class="row ${selected}"><div class="commit-subject">${escapeHtml(c.ShortHash)} ${escapeHtml(c.Subject)}</div><div class="commit-meta">${escapeHtml(c.Author)} · ${escapeHtml(c.Date)}</div></div>`
+      return `<div class="row ${selected}" data-index="${i}"><div class="commit-subject">${escapeHtml(c.ShortHash)} ${escapeHtml(c.Subject)}</div><div class="commit-meta">${escapeHtml(c.Author)} · ${escapeHtml(c.Date)}</div></div>`
     })
     .join('')
   const detail = state.commits[state.commitIndex]
@@ -52,17 +52,17 @@ function renderCommitsPane(): string {
          ${detail.Body ? `<div class="commit-detail-body">${escapeHtml(detail.Body)}</div>` : ''}
        </div>`
     : ''
-  return `<div class="pane-title">${tabs}</div><div class="list">${rows}</div>${detailHtml}`
+  return `<div class="pane-title">${tabs}</div><div class="scroll-area"><div class="list">${rows}</div></div>${detailHtml}`
 }
 
 function renderFilesPane(): string {
   const rows = state.files
     .map((f, i) => {
       const selected = i === state.fileIndex ? 'selected' : ''
-      return `<div class="row ${selected}"><span class="status ${statusClass(f.Status)}">${f.Status}</span> ${escapeHtml(f.Path)}</div>`
+      return `<div class="row ${selected}" data-index="${i}"><span class="status ${statusClass(f.Status)}">${f.Status}</span> ${escapeHtml(f.Path)}</div>`
     })
     .join('')
-  return `<div class="pane-title">Files</div><div class="list">${rows}</div>`
+  return `<div class="pane-title">Files</div><div class="scroll-area"><div class="list">${rows}</div></div>`
 }
 
 function renderDiffPane(): string {
@@ -106,6 +106,18 @@ function statusBarText(): string {
   return text
 }
 
+function renderPathBar(): string {
+  const path = selectedPathLine()
+  if (!path) return `<div class="path-bar"></div>`
+  const escaped = escapeHtml(path)
+  return `<div class="path-bar">
+    <button class="copy-btn" data-path="${escaped}" title="Copy path" aria-label="Copy path">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    </button>
+    <span class="path-text">${escaped}</span>
+  </div>`
+}
+
 export function render(): void {
   const app = document.getElementById('app')!
   app.innerHTML = `
@@ -118,7 +130,7 @@ export function render(): void {
       }
       <div id="pane-diff" class="pane diff-pane ${state.focused === 'diff' ? 'focused' : ''}">${renderDiffPane()}</div>
     </div>
-    <div class="path-bar">${escapeHtml(selectedPathLine())}</div>
+    ${renderPathBar()}
     <div class="status-bar">${escapeHtml(statusBarText())}</div>
   `
   setDiffContainer(document.getElementById('pane-diff'))

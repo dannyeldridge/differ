@@ -12,9 +12,10 @@ import (
 func Run(repoPath string) error {
 	app := &App{repoPath: repoPath}
 	return wails.Run(&options.App{
-		Title:  "differ",
-		Width:  1200,
-		Height: 800,
+		Title:                    "differ",
+		Width:                    1200,
+		Height:                   800,
+		EnableDefaultContextMenu: true,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
