@@ -12,6 +12,7 @@ import (
 
 func main() {
 	tuiMode := flag.Bool("tui", false, "run the terminal UI instead of the GUI")
+	foreground := flag.Bool("foreground", false, "run the GUI in this process instead of detaching from the terminal")
 	flag.Parse()
 
 	cwd, err := os.Getwd()
@@ -33,6 +34,8 @@ func main() {
 
 	if *tuiMode {
 		err = tui.Run(root)
+	} else if !*foreground && detach(root) == nil {
+		return
 	} else {
 		err = gui.Run(root)
 	}

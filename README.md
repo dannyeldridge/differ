@@ -25,7 +25,9 @@ cd your-repo
 differ
 ```
 
-This opens a native macOS window. To use the terminal UI instead:
+This opens a native macOS window and returns your shell. Running `differ` in another repo adds a tab to that same window (or focuses the tab if the repo is already open) instead of opening a new one. GUI output goes to `~/Library/Caches/differ/differ.log`; pass `--foreground` to keep the GUI attached to your terminal for debugging.
+
+To use the terminal UI instead:
 
 ```sh
 differ --tui
@@ -45,7 +47,9 @@ Both the GUI and the terminal UI use the same keys:
 | `g` | Go to top |
 | `G` | Go to bottom |
 | `q` / `ctrl+c` | Quit (terminal UI) |
-| `q` / `Cmd+Q` / `Cmd+W` | Quit (GUI) |
+| `q` / `Cmd+W` | Close the current tab; quits when it is the last one (GUI) |
+| `Cmd+Q` | Quit the app and all tabs (GUI) |
+| `Cmd+1`–`Cmd+9` | Jump to tab by position (GUI) |
 
 ## Development
 

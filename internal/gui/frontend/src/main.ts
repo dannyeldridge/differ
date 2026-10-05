@@ -2,6 +2,10 @@ import './style.css'
 import {
   init,
   handleKey,
+  tabs,
+  activateTabAt,
+  openTab,
+  closeTab,
   setRenderer,
   refreshForRepoChange,
   state,
@@ -35,6 +39,19 @@ document.getElementById('app')!.addEventListener('click', (e) => {
       copyBtn.classList.add('copied')
       setTimeout(() => copyBtn.classList.remove('copied'), 1000)
     })
+    return
+  }
+
+  const closeBtn = target.closest<HTMLElement>('[data-close-index]')
+  if (closeBtn) {
+    const repo = tabs[Number(closeBtn.dataset.closeIndex)]?.repo
+    if (repo) safely(() => closeTab(repo))
+    return
+  }
+
+  const repoTab = target.closest<HTMLElement>('[data-repo-index]')
+  if (repoTab) {
+    activateTabAt(Number(repoTab.dataset.repoIndex))
     return
   }
 
@@ -73,9 +90,19 @@ const HANDLED_KEYS = new Set([
 ])
 
 window.addEventListener('keydown', (e) => {
-  if (e.metaKey && (e.key === 'q' || e.key === 'w')) {
+  if (e.metaKey && e.key === 'q') {
     e.preventDefault()
     window.runtime.Quit()
+    return
+  }
+  if (e.metaKey && e.key === 'w') {
+    e.preventDefault()
+    safely(() => handleKey('q'))
+    return
+  }
+  if (e.metaKey && /^[1-9]$/.test(e.key)) {
+    e.preventDefault()
+    activateTabAt(Number(e.key) - 1)
     return
   }
   if (e.metaKey || e.ctrlKey) return
@@ -86,8 +113,12 @@ window.addEventListener('keydown', (e) => {
   }
 })
 
-window.runtime.EventsOn('repo-changed', () => {
-  safely(() => refreshForRepoChange())
+window.runtime.EventsOn('repo-changed', (repo) => {
+  safely(() => refreshForRepoChange(String(repo)))
+})
+
+window.runtime.EventsOn('repo-opened', (repo) => {
+  safely(() => openTab(String(repo)))
 })
 
 window.addEventListener('unhandledrejection', (e) => {

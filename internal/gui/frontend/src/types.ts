@@ -18,3 +18,8 @@ export interface DiffLine {
   Type: DiffLineType
   Content: string
 }
+
+export interface RepoList {
+  Repos: string[]
+  Active: string
+}

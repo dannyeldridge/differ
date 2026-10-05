@@ -1,4 +1,4 @@
-import { state, setDiffContainer } from './state'
+import { state, tabs, setDiffContainer } from './state'
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -118,9 +118,32 @@ function renderPathBar(): string {
   </div>`
 }
 
+function repoLabels(): string[] {
+  const parts = tabs.map((t) => t.repo.split('/').filter(Boolean))
+  const base = parts.map((p) => p[p.length - 1] ?? '/')
+  return parts.map((p, i) => {
+    const name = base[i]
+    const clash = base.filter((b) => b === name).length > 1
+    return clash && p.length > 1 ? `${p[p.length - 2]}/${name}` : name
+  })
+}
+
+function renderTabBar(): string {
+  if (tabs.length <= 1) return ''
+  const labels = repoLabels()
+  const items = tabs
+    .map((t, i) => {
+      const active = t === state ? 'active' : ''
+      return `<div class="repo-tab ${active}" data-repo-index="${i}" title="${escapeHtml(t.repo).replace(/"/g, '&quot;')}"><span class="repo-tab-label">${escapeHtml(labels[i])}</span><span class="repo-tab-close" data-close-index="${i}" aria-label="Close tab">×</span></div>`
+    })
+    .join('')
+  return `<div class="repo-tabs">${items}</div>`
+}
+
 export function render(): void {
   const app = document.getElementById('app')!
   app.innerHTML = `
+    ${renderTabBar()}
     <div class="panes ${state.mode === 'changes' ? 'changes-mode' : ''}">
       <div id="pane-commits" class="pane ${state.focused === 'commits' ? 'focused' : ''}">${renderCommitsPane()}</div>
       ${

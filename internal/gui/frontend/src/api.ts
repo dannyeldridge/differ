@@ -1,13 +1,15 @@
-import type { Commit, FileChange, DiffLine } from './types'
+import type { Commit, FileChange, DiffLine, RepoList } from './types'
 
 interface GoAPI {
-  CurrentBranch(): Promise<string>
-  LoadCommits(): Promise<Commit[]>
-  LoadFiles(hash: string): Promise<FileChange[]>
-  LoadDiffLines(hash: string, file: string): Promise<DiffLine[]>
-  LoadStagedFiles(): Promise<FileChange[]>
-  LoadUnstagedFiles(): Promise<FileChange[]>
-  LoadWorkingDiffLines(file: string, staged: boolean): Promise<DiffLine[]>
+  ListRepos(): Promise<RepoList>
+  CloseRepo(repo: string): Promise<number>
+  CurrentBranch(repo: string): Promise<string>
+  LoadCommits(repo: string): Promise<Commit[]>
+  LoadFiles(repo: string, hash: string): Promise<FileChange[]>
+  LoadDiffLines(repo: string, hash: string, file: string): Promise<DiffLine[]>
+  LoadStagedFiles(repo: string): Promise<FileChange[]>
+  LoadUnstagedFiles(repo: string): Promise<FileChange[]>
+  LoadWorkingDiffLines(repo: string, file: string, staged: boolean): Promise<DiffLine[]>
 }
 
 declare global {
@@ -24,12 +26,14 @@ function app(): GoAPI {
   return window.go.gui.App
 }
 
-export const currentBranch = () => app().CurrentBranch()
-export const loadCommits = () => app().LoadCommits()
-export const loadFiles = (hash: string) => app().LoadFiles(hash).then((r) => r ?? [])
-export const loadDiffLines = (hash: string, file: string) =>
-  app().LoadDiffLines(hash, file).then((r) => r ?? [])
-export const loadStagedFiles = () => app().LoadStagedFiles().then((r) => r ?? [])
-export const loadUnstagedFiles = () => app().LoadUnstagedFiles().then((r) => r ?? [])
-export const loadWorkingDiffLines = (file: string, staged: boolean) =>
-  app().LoadWorkingDiffLines(file, staged).then((r) => r ?? [])
+export const listRepos = () => app().ListRepos().then((r) => ({ Repos: r.Repos ?? [], Active: r.Active }))
+export const closeRepo = (repo: string) => app().CloseRepo(repo)
+export const currentBranch = (repo: string) => app().CurrentBranch(repo)
+export const loadCommits = (repo: string) => app().LoadCommits(repo)
+export const loadFiles = (repo: string, hash: string) => app().LoadFiles(repo, hash).then((r) => r ?? [])
+export const loadDiffLines = (repo: string, hash: string, file: string) =>
+  app().LoadDiffLines(repo, hash, file).then((r) => r ?? [])
+export const loadStagedFiles = (repo: string) => app().LoadStagedFiles(repo).then((r) => r ?? [])
+export const loadUnstagedFiles = (repo: string) => app().LoadUnstagedFiles(repo).then((r) => r ?? [])
+export const loadWorkingDiffLines = (repo: string, file: string, staged: boolean) =>
+  app().LoadWorkingDiffLines(repo, file, staged).then((r) => r ?? [])
