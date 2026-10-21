@@ -17,8 +17,10 @@ import {
   selectChangesEntry,
 } from './state'
 import { render } from './render'
+import { initPaneResize } from './resize'
 
 setRenderer(render)
+initPaneResize()
 
 function safely(fn: () => Promise<void>): void {
   fn().catch((err) => {

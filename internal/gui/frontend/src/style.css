@@ -66,14 +66,37 @@ body {
 .panes {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr 2fr;
-  gap: 1px;
+  grid-template-columns: var(--w-commits, 1fr) 1px var(--w-files, 1fr) 1px var(--w-diff, 2fr);
   overflow: hidden;
   background: var(--border);
 }
 
 .panes.changes-mode {
-  grid-template-columns: 1fr 3fr;
+  grid-template-columns: var(--w-commits, 1fr) 1px var(--w-diff, 3fr);
+}
+
+/* 1px visible line; ::before widens the grab area over the neighbouring borders. */
+.resizer {
+  position: relative;
+  z-index: 1;
+  cursor: col-resize;
+}
+
+.resizer::before {
+  content: '';
+  position: absolute;
+  inset: 0 -3px;
+}
+
+.resizer:hover,
+body.resizing .resizer {
+  background: var(--border-focus);
+}
+
+body.resizing,
+body.resizing * {
+  cursor: col-resize !important;
+  user-select: none;
 }
 
 .pane {

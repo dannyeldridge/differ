@@ -146,9 +146,10 @@ export function render(): void {
     ${renderTabBar()}
     <div class="panes ${state.mode === 'changes' ? 'changes-mode' : ''}">
       <div id="pane-commits" class="pane ${state.focused === 'commits' ? 'focused' : ''}">${renderCommitsPane()}</div>
+      <div class="resizer"></div>
       ${
         state.mode === 'history'
-          ? `<div id="pane-files" class="pane ${state.focused === 'files' ? 'focused' : ''}">${renderFilesPane()}</div>`
+          ? `<div id="pane-files" class="pane ${state.focused === 'files' ? 'focused' : ''}">${renderFilesPane()}</div><div class="resizer"></div>`
           : ''
       }
       <div id="pane-diff" class="pane diff-pane ${state.focused === 'diff' ? 'focused' : ''}">${renderDiffPane()}</div>

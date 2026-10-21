@@ -25,7 +25,7 @@ cd your-repo
 differ
 ```
 
-This opens a native macOS window and returns your shell. Running `differ` in another repo adds a tab to that same window, or focuses the tab if that repo is already open, instead of opening a second window. The tab bar appears once more than one repo is open. Click a tab to switch, or its `×` to close it.
+This opens a native macOS window and returns your shell. Running `differ` in another repo adds a tab to that same window, or focuses the tab if that repo is already open, instead of opening a second window. The tab bar appears once more than one repo is open. Click a tab to switch, or its `×` to close it. Drag the divider between columns to resize them; the widths are remembered between launches.
 
 The GUI runs detached from the terminal, so closing the terminal doesn't close the app. Its output goes to `~/Library/Caches/differ/differ.log`. Pass `--foreground` to keep it attached to your terminal instead, which is useful for debugging.
 
