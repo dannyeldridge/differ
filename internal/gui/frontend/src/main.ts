@@ -4,6 +4,7 @@ import {
   handleKey,
   tabs,
   activateTabAt,
+  activateAdjacentTab,
   openTab,
   closeTab,
   setRenderer,
@@ -98,6 +99,12 @@ window.addEventListener('keydown', (e) => {
   if (e.metaKey && e.key === 'w') {
     e.preventDefault()
     safely(() => handleKey('q'))
+    return
+  }
+  // e.code, not e.key: shift turns [ and ] into { and }, and the glyphs vary by layout.
+  if (e.metaKey && e.shiftKey && (e.code === 'BracketLeft' || e.code === 'BracketRight')) {
+    e.preventDefault()
+    activateAdjacentTab(e.code === 'BracketLeft' ? -1 : 1)
     return
   }
   if (e.metaKey && /^[1-9]$/.test(e.key)) {

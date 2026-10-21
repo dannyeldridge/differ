@@ -166,6 +166,13 @@ export function activateTabAt(index: number): void {
   if (tab) activateTab(tab.repo)
 }
 
+// Wraps around at either end, like browser tabs.
+export function activateAdjacentTab(delta: 1 | -1): void {
+  if (tabs.length < 2) return
+  const current = tabs.indexOf(state)
+  activateTabAt((current + delta + tabs.length) % tabs.length)
+}
+
 // Called when the backend opens a repo (a later `differ` launch): add its tab if
 // new and bring it to the front.
 export async function openTab(repo: string): Promise<void> {

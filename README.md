@@ -52,6 +52,7 @@ The GUI and the terminal UI share these keys. The tab keys at the bottom are GUI
 | `q` / `Cmd+W` | Close the current tab; quits when it is the last one (GUI) |
 | `Cmd+Q` | Quit the app and all tabs (GUI) |
 | `Cmd+1`–`Cmd+9` | Jump to tab by position (GUI) |
+| `Cmd+Shift+[` / `Cmd+Shift+]` | Previous / next tab, wrapping at the ends (GUI) |
 
 ## Development
 
